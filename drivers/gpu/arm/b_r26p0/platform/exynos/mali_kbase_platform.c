@@ -279,8 +279,6 @@ static int gpu_dvfs_update_config_data_from_dt(struct kbase_device *kbdev)
 	gpu_update_config_data_int(np, "gpu_max_clock", &platform->gpu_max_clock);
 #ifdef CONFIG_CAL_IF
 	platform->gpu_max_clock_limit = (int)cal_dfs_get_max_freq(platform->g3d_cmu_cal_id);
-	if (platform->gpu_max_clock_limit < 1300000||platform->gpu_max_clock < 1300000) 	// oc gpu
-	platform->gpu_max_clock=platform->gpu_max_clock_limit=1300000;
 #else
 	gpu_update_config_data_int(np, "gpu_max_clock_limit", &platform->gpu_max_clock_limit);
 #endif
@@ -290,19 +288,12 @@ static int gpu_dvfs_update_config_data_from_dt(struct kbase_device *kbdev)
 	gpu_update_config_data_int(np, "gpu_cold_minimum_vol", &platform->cold_min_vol);
 	gpu_update_config_data_int(np, "gpu_voltage_offset_margin", &platform->gpu_default_vol_margin);
 	gpu_update_config_data_bool(np, "gpu_tmu_control", &platform->tmu_status);
-	if (platform->tmu_status==1) //
-		platform->tmu_status=0;//0 for disable tmu control by default
 	gpu_update_config_data_int(np, "gpu_temp_throttling_level_num", &of_data_int);
 	if (of_data_int == TMU_LOCK_CLK_END)
 		gpu_update_config_data_int_array(np, "gpu_temp_throttling", platform->tmu_lock_clk, TMU_LOCK_CLK_END);
 	else
 		GPU_LOG(DVFS_WARNING, DUMMY, 0u, 0u, "mismatch tmu lock table size: %d, %d\n",
 				of_data_int, TMU_LOCK_CLK_END);
-	platform->tmu_lock_clk[0]=1300000; // tmu control disabled so not use it //edit temp throttling
-	platform->tmu_lock_clk[1]=1053000; // tmu control disabled so not use it //edit temp throttling
-	platform->tmu_lock_clk[2]=949000; // tmu control disabled so not use it //edit temp throttling
-	platform->tmu_lock_clk[3]=839000; // tmu control disabled so not use it //edit temp throttling
-	platform->tmu_lock_clk[4]=764000; //tmu control disabled so not use it //edit temp throttling
 #ifdef CONFIG_CPU_THERMAL_IPA
 	gpu_update_config_data_int(np, "gpu_power_coeff", &platform->ipa_power_coeff_gpu);
 	gpu_update_config_data_int(np, "gpu_dvfs_time_interval", &platform->gpu_dvfs_time_interval);
@@ -404,15 +395,13 @@ static int gpu_dvfs_update_asv_table(struct kbase_device *kbdev)
 	for (i = 0; i < cal_get_dvfs_lv_num; i++) {
 		cal_freq = g3d_rate_volt[i].rate;
 		cal_vol = g3d_rate_volt[i].volt;
-		if (cal_freq <= platform->gpu_max_clock_limit && cal_freq >= platform->gpu_min_clock) {
+		if (cal_freq <= platform->gpu_max_clock && cal_freq >= platform->gpu_min_clock) {
 			for (j = 0; j < dvfs_table_row_num; j++) {
 				table_idx = j * dvfs_table_col_num;
 				// Compare cal_freq with DVFS table freq
 				if (cal_freq == of_data_int_array[table_idx]) {
-					if (!cal_vol)
-						cal_vol = platform->gpu_default_vol;
 					dvfs_table[j].clock = cal_freq;
-					dvfs_table[j].voltage = +25000;
+					dvfs_table[j].voltage = cal_vol;
 					dvfs_table[j].min_threshold = of_data_int_array[table_idx+1];
 					dvfs_table[j].max_threshold = of_data_int_array[table_idx+2];
 					dvfs_table[j].down_staycount = of_data_int_array[table_idx+3];
@@ -432,37 +421,6 @@ static int gpu_dvfs_update_asv_table(struct kbase_device *kbdev)
 						GPU_LOG(DVFS_INFO, DUMMY, 0u, 0u, "up [%d] down [%d] staycnt [%d] mif [%d] lit [%d] big [%d]\n",
 								dvfs_table[j].max_threshold, dvfs_table[j].min_threshold, dvfs_table[j].down_staycount,
 								dvfs_table[j].mem_freq, dvfs_table[j].cpu_little_min_freq, dvfs_table[j].cpu_big_max_freq);
-
-
-					}
-
-					if (dvfs_table[j].clock==1300000){//
-						dvfs_table[j].min_threshold =96;
-						dvfs_table[j].max_threshold =100;
-						dvfs_table[j].mem_freq =2093000;
-						dvfs_table[j].cpu_little_min_freq=2093000;
-					}
-					if (dvfs_table[j].clock==1053000){
-						dvfs_table[j].min_threshold =80;
-						dvfs_table[j].max_threshold =96;
-						dvfs_table[j].mem_freq =2093000;
-						dvfs_table[j].down_staycount=1;
-						dvfs_table[j].cpu_little_min_freq=2093000;
-					}
-					if (dvfs_table[j].clock==949000){//
-						dvfs_table[j].min_threshold =85;
-						dvfs_table[j].max_threshold =90;
-						dvfs_table[j].mem_freq =2093000;
-						dvfs_table[j].down_staycount=1;
-						dvfs_table[j].cpu_little_min_freq=2093000;
-					}
-					if (dvfs_table[j].clock==839000){
-						dvfs_table[j].min_threshold =85;//90
-						dvfs_table[j].max_threshold =90;//95
-						dvfs_table[j].mem_freq =2093000;
-						dvfs_table[j].down_staycount=1;
-						dvfs_table[j].cpu_little_min_freq=2093000;
-						
 					}
 				}
 			}
@@ -506,7 +464,7 @@ static int gpu_context_init(struct kbase_device *kbdev)
 #endif
 
 	core_props = &(kbdev->gpu_props.props.core_props);
-	core_props->gpu_freq_khz_max = platform->gpu_max_clock;
+	core_props->gpu_freq_khz_max = platform->gpu_max_clock * 1000;
 
 #if MALI_SEC_PROBE_TEST != 1
 	kbdev->vendor_callbacks = (struct kbase_vendor_callbacks *)gpu_get_callbacks();

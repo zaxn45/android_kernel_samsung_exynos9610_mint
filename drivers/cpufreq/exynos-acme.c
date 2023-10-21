@@ -1160,10 +1160,7 @@ static int register_dm_callback(struct exynos_cpufreq_domain *domain)
 	return register_exynos_dm_freq_scaler(domain->dm_type, dm_scaler);
 }
 
-//INICIO OVERCLOCK
-#ifdef CONFIG_ARM_MODCLOCK
-
-static unsigned long arg_cpu_max_c1 = CONFIG_MAX_FREQ_LITTLE; //FUNCIONAL 2054000
+static unsigned long arg_cpu_max_c1 = 2054000;
 
 static int __init cpufreq_read_cpu_max_c1(char *cpu_max_c1)
 {
@@ -1180,7 +1177,7 @@ static int __init cpufreq_read_cpu_max_c1(char *cpu_max_c1)
 }
 __setup("cpu_max_c1=", cpufreq_read_cpu_max_c1);
 
-unsigned long arg_cpu_max_c2 = CONFIG_MAX_FREQ_BIG; //FUNCIONAL 2496000
+unsigned long arg_cpu_max_c2 = 2596000;
 
 static __init int cpufreq_read_cpu_max_c2(char *cpu_max_c2)
 {
@@ -1197,11 +1194,7 @@ static __init int cpufreq_read_cpu_max_c2(char *cpu_max_c2)
 }
 __setup("cpu_max_c2=", cpufreq_read_cpu_max_c2);
 
-//FINAL OVERCLOCK
-
-//INICO UNDERCLOCK
-
-static unsigned long arg_cpu_min_c1 = CONFIG_MIN_FREQ_LITTLE; //STOCK 702000
+static unsigned long arg_cpu_min_c1 = 702000;
 
 static int __init cpufreq_read_cpu_min_c1(char *cpu_min_c1)
 {
@@ -1218,7 +1211,7 @@ static int __init cpufreq_read_cpu_min_c1(char *cpu_min_c1)
 }
 __setup("cpu_min_c1=", cpufreq_read_cpu_min_c1);
 
-unsigned long arg_cpu_min_c2 = CONFIG_MIN_FREQ_BIG; //FUNCIONAL 1040000
+unsigned long arg_cpu_min_c2 = 1040000;
 
 static __init int cpufreq_read_cpu_min_c2(char *cpu_min_c2)
 {
@@ -1235,7 +1228,6 @@ static __init int cpufreq_read_cpu_min_c2(char *cpu_min_c2)
 }
 __setup("cpu_min_c2=", cpufreq_read_cpu_min_c2);
 #endif
-//FINAL UNDERCLOCK
 
 static __init int init_domain(struct exynos_cpufreq_domain *domain,
 					struct device_node *dn)
@@ -1270,9 +1262,6 @@ static __init int init_domain(struct exynos_cpufreq_domain *domain,
 	if (of_property_read_bool(dn, "need-awake"))
 		domain->need_awake = true;
 
-	
-//INICIO OVERCLOCK AND UNDERCLOCK
-#ifdef CONFIG_ARM_MODCLOCK
 	if (domain->id == 0) {
 		domain->max_usable_freq = arg_cpu_max_c1;
 		domain->max_freq = arg_cpu_max_c1;
@@ -1285,8 +1274,10 @@ static __init int init_domain(struct exynos_cpufreq_domain *domain,
 		domain->min_freq = arg_cpu_min_c2;
 	}
 #endif
-//FINAL OVERCLOCK
 
+/* Default QoS for user */
+	if (!of_property_read_u32(dn, "user-default-qos", &val))
+		domain->user_default_qos = val;
 	
 	domain->boot_freq = cal_dfs_get_boot_freq(domain->cal_id);
 	domain->resume_freq = cal_dfs_get_resume_freq(domain->cal_id);

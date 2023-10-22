@@ -1227,7 +1227,6 @@ static __init int cpufreq_read_cpu_min_c2(char *cpu_min_c2)
 	return ret;
 }
 __setup("cpu_min_c2=", cpufreq_read_cpu_min_c2);
-#endif
 
 static __init int init_domain(struct exynos_cpufreq_domain *domain,
 					struct device_node *dn)
@@ -1273,7 +1272,6 @@ static __init int init_domain(struct exynos_cpufreq_domain *domain,
 		domain->min_usable_freq = arg_cpu_min_c2;
 		domain->min_freq = arg_cpu_min_c2;
 	}
-#endif
 
 /* Default QoS for user */
 	if (!of_property_read_u32(dn, "user-default-qos", &val))

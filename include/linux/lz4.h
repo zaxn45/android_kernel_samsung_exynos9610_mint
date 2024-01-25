@@ -175,6 +175,18 @@ static inline int LZ4_compressBound(size_t isize)
 }
 
 /**
+ * lz4_compressbound() - For backwards compatibility; see LZ4_compressBound
+ * @isize: Size of the input data
+ *
+ * Return: Max. size LZ4 may output in a "worst case" szenario
+ *	(data not compressible)
+ */
+static inline int lz4_compressbound(size_t isize)
+{
+	return LZ4_COMPRESSBOUND(isize);
+}
+
+/**
  * LZ4_compress_default() - Compress data from source to dest
  * @source: source address of the original data
  * @dest: output buffer address of the compressed data
